@@ -1,10 +1,10 @@
 import React, { useEffect, useRef, useState } from "react";
 import { highlightsSlides } from "../constants";
-import { ScrollTrigger } from "gsap/all";
-
-import gsap from "gsap";
-import { pauseImg, playImg, replayImg } from "../utils";
 import { useGSAP } from "@gsap/react";
+import gsap from "gsap";
+import { ScrollTrigger } from "gsap/all";
+gsap.registerPlugin(ScrollTrigger);
+import { pauseImg, playImg, replayImg } from "../utils";
 
 export default function VideoCarousel() {
   const videoRef = useRef([]);
@@ -50,12 +50,31 @@ export default function VideoCarousel() {
   const handelLoadeMetaData = (i, e) => [setLoadedDate((pre) => [...pre, e])];
 
   useEffect(() => {
-    const currentProgress = 0;
+    let currentProgress = 0;
     let span = videoSapnRef.current;
     if (span[videoId]) {
       // animate the progress of the video
       let anim = gsap.to(span[videoId], {
-        onUpdate: () => {},
+        onUpdate: () => {
+          const progress = Math.ceil(anim.progress() * 100);
+          if (progress != currentProgress) {
+            currentProgress = progress;
+
+            gsap.to(videoDivRef.current[videoId], {
+              width:
+                window.innerWidth < 760
+                  ? "10vw"
+                  : window.innerWidth < 1200
+                  ? "10vw"
+                  : "4vw",
+            });
+            gsap.to(span[videoId], {
+              width: `${currentProgress}%`,
+              backgroundColor: 'white'
+            })
+            
+          }
+        },
         onComplete: () => {},
       });
     }
