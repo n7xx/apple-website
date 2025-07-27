@@ -50,7 +50,7 @@ export default function VideoCarousel() {
   const handelLoadeMetaData = (i, e) => [setLoadedDate((pre) => [...pre, e])];
 
   useEffect(() => {
-    const currentProgress = 0;
+    let currentProgress = 0;
     let span = videoSapnRef.current;
     if (span[videoId]) {
       // animate the progress of the video
