@@ -211,7 +211,7 @@ canvas {
     margin-left: 1rem;
     padding: 1rem;
     border-radius: 9999px;
-    background-color: rgb(209 213 219 / 0.3);
+    background-color: rgba(128, 128, 128, 0.3);
     backdrop-filter: blur(8px);
     display: flex;
     align-items: center;
