@@ -1,14 +1,15 @@
-import React, { useEffect, useRef, useState } from "react";
-import { highlightsSlides } from "../constants";
-import { useGSAP } from "@gsap/react";
 import gsap from "gsap";
+import { useGSAP } from "@gsap/react";
 import { ScrollTrigger } from "gsap/all";
 gsap.registerPlugin(ScrollTrigger);
+import { useEffect, useRef, useState } from "react";
+
+import { highlightsSlides } from "../constants";
 import { pauseImg, playImg, replayImg } from "../utils";
 
 export default function VideoCarousel() {
   const videoRef = useRef([]);
-  const videoSapnRef = useRef([]);
+  const videoSpanRef = useRef([]);
   const videoDivRef = useRef([]);
 
   const [video, setVideo] = useState({
@@ -19,10 +20,14 @@ export default function VideoCarousel() {
     isPlaying: false,
   });
   const [loadedData, setLoadedDate] = useState([]);
-
   const { isEnd, startPlay, videoId, isLastVideo, isPlaying } = video;
 
   useGSAP(() => {
+    gsap.to("#slider", {
+      transform: `translateX(${-100 * videoId}%)`,
+      duration: 2,
+      ease: "power2.inOut",
+    });
     gsap.to("#video", {
       ScrollTrigger: {
         trigger: "#video",
@@ -37,21 +42,10 @@ export default function VideoCarousel() {
       },
     });
   }, [isEnd, videoId]);
-  useEffect(() => {
-    if (loadedData.length > 3) {
-      if (!isPlaying) {
-        videoRef.current[videoId].pause();
-      } else {
-        startPlay && videoRef.current[videoId].play();
-      }
-    }
-  }, [startPlay, videoId, isPlaying, loadedData]);
-
-  const handelLoadeMetaData = (i, e) => [setLoadedDate((pre) => [...pre, e])];
 
   useEffect(() => {
     let currentProgress = 0;
-    let span = videoSapnRef.current;
+    let span = videoSpanRef.current;
     if (span[videoId]) {
       // animate the progress of the video
       let anim = gsap.to(span[videoId], {
@@ -70,15 +64,53 @@ export default function VideoCarousel() {
             });
             gsap.to(span[videoId], {
               width: `${currentProgress}%`,
-              backgroundColor: 'white'
-            })
-            
+              backgroundColor: "white",
+            });
           }
         },
-        onComplete: () => {},
+        onComplete: () => {
+          if (isPlaying) {
+            gsap.to(videoDivRef.current[videoId], {
+              width: "12px",
+            });
+            gsap.to(span[videoId], {
+              backgroundColor: "#afafaf",
+            });
+          }
+        },
       });
+
+      if (videoId == 0) {
+        anim.restart();
+      }
+
+      // update the progress bar
+      const animUpdate = () => {
+        anim.progress(
+          videoRef.current[videoId].currentTime /
+            highlightsSlides[videoId].videoDuration
+        );
+      };
+
+      if (isPlaying) {
+        gsap.ticker.add(animUpdate);
+      } else {
+        gsap.ticker.remove(animUpdate);
+      }
     }
   }, [videoId, startPlay]);
+
+  useEffect(() => {
+    if (loadedData.length > 3) {
+      if (!isPlaying) {
+        videoRef.current[videoId].pause();
+      } else {
+        startPlay && videoRef.current[videoId].play();
+      }
+    }
+  }, [startPlay, videoId, isPlaying, loadedData]);
+
+  const handelLoadeMetaData = (i, e) => [setLoadedDate((pre) => [...pre, e])];
 
   const handleProcess = (type, i) => {
     switch (type) {
@@ -109,6 +141,9 @@ export default function VideoCarousel() {
           videoId: 0,
         }));
         break;
+      case "pause":
+        setVideo((pre) => ({ ...pre, isPlaying: !pre.isPlaying }));
+        break;
       default:
         return video;
     }
@@ -121,9 +156,11 @@ export default function VideoCarousel() {
             <div className="video-carousel_container">
               <div className="w-full h-full flex-center rounded-3xl overflow-hidden bg-black">
                 <video
+                  className={`${
+                    list.id === 2 && "translate-x-44"
+                  } pointer-events-none`}
                   id="video"
                   playsInline={true}
-                  autoPlay
                   preload="auto"
                   muted
                   ref={(el) => (videoRef.current[i] = el)}
@@ -134,12 +171,17 @@ export default function VideoCarousel() {
                     }));
                   }}
                   onLoadedMetadata={(e) => handelLoadeMetaData(i, e)}
+                  onEnded={() => {
+                    i !== 3
+                      ? handleProcess("video-end", i)
+                      : handleProcess("video-last");
+                  }}
                 >
                   <source src={list.video} type="video/mp4" />
                 </video>
               </div>
-              <div className="absolute top-12 left=[5%] z-10">
-                {list.textLists.map((text) => (
+              <div className="absolute top-12 left-[5%] z-10">
+                {list.textLists.map((text, i) => (
                   <p key={text} className="md:text-2xl text-xl font-medium">
                     {text}
                   </p>
@@ -149,17 +191,18 @@ export default function VideoCarousel() {
           </div>
         ))}
       </div>
-      <div className="relativ4e flex-center mt-10">
+
+      <div className="relative flex-center mt-10">
         <div className="flex-center py-5 px-7 bg-zinc-800 backdrop-blur rounded-full">
           {videoRef.current.map((_, i) => (
             <span
               key={i}
+              className="mx-2 w-3 h-3 bg-zinc-600 rounded-full relative cursor-pointer"
               ref={(el) => (videoDivRef.current[i] = el)}
-              className="mx-2 w-3 h-3 bg-zinc-500 rounded-full cursor-pointer"
             >
               <span
-                className="absoulate h-full w-full rounded-full"
-                ref={(el) => (videoSapnRef.current[i] = el)}
+                className="absolute h-full w-full rounded-full"
+                ref={(el) => (videoSpanRef.current[i] = el)}
               />
             </span>
           ))}
